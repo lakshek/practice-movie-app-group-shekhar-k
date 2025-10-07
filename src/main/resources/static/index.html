@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Movie Manager (AI)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; }
+        body { margin: 24px; max-width: 900px; }
+        header { margin-bottom: 20px; }
+        form { display: grid; grid-template-columns: 1fr 140px 140px; gap: 12px; align-items: end; margin-bottom: 16px; }
+        label { display: grid; gap: 6px; font-size: 14px; }
+        input { padding: 8px; font-size: 16px; }
+        button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+        .status { min-height: 1.2em; color: #666; margin: 8px 0 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #eee; text-align: left; padding: 10px; vertical-align: top; }
+        td.desc { white-space: pre-wrap; }
+        .muted { color: #888; font-size: 0.95em; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Movie Manager</h1>
+    <p class="muted">Add a <strong>title</strong> and <strong>rating</strong>! </p>
+</header>
+
+<form id="addForm">
+    <label>
+        Title
+        <input id="title" name="title" placeholder="e.g., Harry Potter and the Goblet of Fire" required />
+    </label>
+    <label>
+        Rating (0–10)
+        <input id="rating" name="rating" type="number" step="0.1" min="0" max="10" placeholder="8.9" />
+    </label>
+    <button id="addBtn" type="submit">Add Movie</button>
+</form>
+
+<div id="status" class="status"></div>
+
+<table>
+    <thead>
+    <tr><th style="width:25%">Title</th><th style="width:10%">Rating</th><th>Description</th></tr>
+    </thead>
+    <tbody id="tbody">
+    <tr><td colspan="3" class="muted">No movies yet.</td></tr>
+    </tbody>
+</table>
+
+<script>
+    const API = '/api/movies';
+    const $ = sel => document.querySelector(sel);
+    const $title = $('#title');
+    const $rating = $('#rating');
+    const $btn = $('#addBtn');
+    const $status = $('#status');
+    const $tbody = $('#tbody');
+
+    async function loadMovies() {
+      try {
+        const res = await fetch(API);
+        const movies = await res.json();
+        render(movies);
+      } catch (e) {
+        $status.textContent = 'Failed to load movies.';
+      }
+    }
+
+    function render(movies) {
+      if (!movies.length) {
+        $tbody.innerHTML = `<tr><td colspan="3" class="muted">No movies yet.</td></tr>`;
+        return;
+      }
+      $tbody.innerHTML = movies.map(m => `
+        <tr>
+          <td>${escapeHtml(m.title ?? '')}</td>
+          <td>${m.rating ?? ''}</td>
+          <td class="desc">${escapeHtml(m.description ?? '')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
+      );
+    }
+
+    $('#addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $title.value.trim();
+      if (!title) { $status.textContent = 'Please enter a title.'; return; }
+
+      const r = parseFloat($rating.value);
+      const rating = Number.isFinite(r) ? r : null;
+
+      $btn.disabled = true;
+      $status.textContent = 'Adding movie and generating description…';
+
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ title, rating })
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`POST failed: ${res.status} ${txt}`);
+        }
+
+        await loadMovies();
+        $status.textContent = 'Added!';
+        e.target.reset();
+        $title.focus();
+      } catch (err) {
+        console.error(err);
+        $status.textContent = 'Error adding movie.';
+      } finally {
+        $btn.disabled = false;
+        setTimeout(() => { if ($status.textContent === 'Added!') $status.textContent = ''; }, 1200);
+      }
+    });
+
+    // Load existing movies on page open
+    loadMovies();
+</script>
+</body>
+</html>
