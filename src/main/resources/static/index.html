@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8"/>
     <title>Movie Manager (AI)</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <style>
         :root { font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif; }
         body { margin: 24px; max-width: 900px; }
@@ -28,11 +28,11 @@
 <form id="addForm">
     <label>
         Title
-        <input id="title" name="title" placeholder="e.g., Harry Potter and the Goblet of Fire" required />
+        <input id="title" name="title" placeholder="e.g., Harry Potter and the Goblet of Fire" required/>
     </label>
     <label>
         Rating (0–10)
-        <input id="rating" name="rating" type="number" step="0.1" min="0" max="10" placeholder="8.9" />
+        <input id="rating" name="rating" type="number" step="0.1" min="0" max="10" placeholder="8.9"/>
     </label>
     <button id="addBtn" type="submit">Add Movie</button>
 </form>
@@ -41,10 +41,17 @@
 
 <table>
     <thead>
-    <tr><th style="width:25%">Title</th><th style="width:10%">Rating</th><th>Description</th></tr>
+    <tr>
+        <th style="width:25%">Title</th>
+        <th style="width:10%">Rating</th>
+        <th>Description</th>
+        <th style="width:100px">Delete</th>
+    </tr>
     </thead>
     <tbody id="tbody">
-    <tr><td colspan="3" class="muted">No movies yet.</td></tr>
+    <tr>
+        <td colspan="3" class="muted">No movies yet.</td>
+    </tr>
     </tbody>
 </table>
 
@@ -69,7 +76,7 @@
 
     function render(movies) {
       if (!movies.length) {
-        $tbody.innerHTML = `<tr><td colspan="3" class="muted">No movies yet.</td></tr>`;
+        $tbody.innerHTML = `<tr><td colspan="4" class="muted">No movies yet.</td></tr>`;
         return;
       }
       $tbody.innerHTML = movies.map(m => `
@@ -77,9 +84,29 @@
           <td>${escapeHtml(m.title ?? '')}</td>
           <td>${m.rating ?? ''}</td>
           <td class="desc">${escapeHtml(m.description ?? '')}</td>
+          <td>
+          <button class="del" data-id="${m.id}">Actions</button></td>
         </tr>
       `).join('');
     }
+
+    $tbody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button.del');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (!confirm('Are you sure you want to delete this movie?')) return;
+
+    $status.textContent = 'Deleting...';
+    try {
+    const res = await fetch(`${API}/${id}`, {method: 'DELETE' });
+    if (!res.ok && res.status !== 204) throw new Error(res.status);
+    await loadMovies();
+    $status.textContent = 'Deleted.';
+    } catch (err) {
+    console.error(err);
+    $status.textContent = 'Delete failed.';
+    }
+    });
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c =>

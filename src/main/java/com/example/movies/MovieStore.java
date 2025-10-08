@@ -21,4 +21,8 @@ public class MovieStore {
         data.put(id, m);
         return m;
     }
+
+    public boolean delete(Long id) {
+        return data.remove(id) !=null;
+    }
 }

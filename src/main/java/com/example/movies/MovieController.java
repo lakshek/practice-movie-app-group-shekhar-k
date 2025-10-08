@@ -1,5 +1,6 @@
 package com.example.movies;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,5 +22,12 @@ public class MovieController {
     @PostMapping
     public Movie create(@RequestBody MovieCreationRequest req) {
         return service.add(req.getTitle(), req.getRating());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        return service.delete(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
     }
 }

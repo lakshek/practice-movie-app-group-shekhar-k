@@ -23,4 +23,8 @@ public class MovieService {
         String desc = gemini.generateDescription(title, r);
         return store.save(title, rating, desc);
     }
+
+    public boolean delete(Long id) {
+        return store.delete(id);
+    }
 }
